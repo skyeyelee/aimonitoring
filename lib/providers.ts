@@ -1,0 +1,15 @@
+import {parseResponse} from './citations';
+import type {Provider,Result,Site} from './model';
+export const defaultModels={openai:'gpt-4.1-mini',claude:'claude-sonnet-4-6',gemini:'gemini-2.5-flash'};
+export async function verifyConnection(provider:Provider,key:string,model:string){const spec:{url:string;headers:Record<string,string>}=provider==='openai'?{url:`https://api.openai.com/v1/models/${encodeURIComponent(model)}`,headers:{Authorization:`Bearer ${key}`}}:provider==='claude'?{url:`https://api.anthropic.com/v1/models/${encodeURIComponent(model)}`,headers:{'x-api-key':key,'anthropic-version':'2023-06-01'}}:{url:`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}`,headers:{'x-goog-api-key':key}};const r=await fetch(spec.url,{headers:spec.headers as Record<string,string>,signal:AbortSignal.timeout(20000)});if(!r.ok)throw new Error(`연결 확인 실패 (${r.status}). API 키와 모델 접근 권한을 확인하세요.`);}
+export async function collect(task:Result,key:string,sites:Site[]){let url:string,headers:Record<string,string>,body:unknown;
+ if(task.provider==='openai'){url='https://api.openai.com/v1/responses';headers={Authorization:`Bearer ${key}`};body={model:task.model,input:task.question,tools:[{type:'web_search',user_location:{type:'approximate',country:task.country}}],max_output_tokens:2500,store:false};}
+ else if(task.provider==='claude'){url='https://api.anthropic.com/v1/messages';headers={'x-api-key':key,'anthropic-version':'2023-06-01'};body={model:task.model,max_tokens:2500,messages:[{role:'user',content:task.question}],tools:[{type:'web_search_20250305',name:'web_search',max_uses:3,user_location:{type:'approximate',country:task.country}}]};}
+ else{url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(task.model)}:generateContent`;headers={'x-goog-api-key':key};body={contents:[{role:'user',parts:[{text:`User location scenario: ${task.country}. Respond in ${task.language}.\n${task.question}`}]}],tools:[{google_search:{}}],generationConfig:{maxOutputTokens:3500}};}
+ const r=await fetch(url,{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(65000)});if(!r.ok)throw new Error(`AI 요청 실패 (${r.status}). ${r.status===429?'요금·요청 한도를 확인하세요.':r.status===401||r.status===403?'API 키·국가·계정 권한을 확인하세요.':'모델·검색 지원 여부를 확인하세요.'}`);
+ const raw=await r.json() as Record<string,unknown>;const parsed=parseResponse(task.provider,raw,sites);
+ // Only Google's known citation redirector is fetched; no arbitrary destination is fetched.
+ if(task.provider==='gemini')for(const c of parsed.citations){if(new URL(c.url).hostname==='vertexaisearch.cloud.google.com'){try{const h=await fetch(c.url,{redirect:'manual',signal:AbortSignal.timeout(5000)});const dest=h.headers.get('location');if(dest){const {normalizeUrl,matchSite}=await import('./citations');const n=normalizeUrl(dest);if(n){c.url=n;c.siteId=matchSite(n,sites);}}}catch{ /* preserve unresolved source as an external URL */ }}}
+ parsed.sites=[...new Set(parsed.citations.map(c=>c.siteId).filter(Boolean))] as string[];return {...parsed,raw:JSON.stringify(raw)};
+}
+

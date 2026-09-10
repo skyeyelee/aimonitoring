@@ -1,0 +1,17 @@
+export type Provider='openai'|'claude'|'gemini';
+export type Site={id:string;name:string;domain:string;active:number};
+export type Question={id:string;text:string;language:string;keyword:string;countries:string[];active:number;version:number;branded:number};
+export type Connection={id:Provider;model:string;connected:boolean;enabled:number;tested:string|null;status:string};
+export type Citation={url:string;title:string;text:string;siteId:string|null};
+export type Result={id:string;jobId:string;questionId:string;question:string;keyword:string;language:string;provider:Provider;model:string;country:string;countryMethod:string;track:string;status:string;answer:string;citations:Citation[];sites:string[];brand:boolean;error:string|null;createdAt:string;signature:string;searchUsed:boolean;evidence:string;branded:number};
+export type Job={id:string;label:string;kind:string;status:string;createdAt:string;total:number;done:number;failed:number};
+export type Settings={enabled:boolean;repeats:number;monthlyLimit:number;countries:string[];weekday:number;hour:number};
+export type DashboardData={sites:Site[];questions:Question[];connections:Connection[];results:Result[];jobs:Job[];settings:Settings;usedThisMonth:number;nextRun:string;role:string;scheduler:string;storageReady:boolean};
+export const countries=[{code:'KR',name:'한국',lang:'한국어'},{code:'US',name:'미국',lang:'영어'},{code:'CA',name:'캐나다',lang:'영어'},{code:'AU',name:'호주',lang:'영어'},{code:'CN',name:'중국',lang:'중국어 간체'},{code:'TW',name:'대만',lang:'중국어 번체'},{code:'JP',name:'일본',lang:'일본어'},{code:'MN',name:'몽골',lang:'몽골어'}];
+export const providers:{id:Provider;name:string;screen:string;color:string;mark:string}[]=[{id:'openai',name:'OpenAI API',screen:'ChatGPT',color:'#157c69',mark:'O'},{id:'claude',name:'Claude API',screen:'Claude',color:'#b16949',mark:'C'},{id:'gemini',name:'Gemini API',screen:'Gemini',color:'#4676de',mark:'G'}];
+export const initialSites:Site[]=[{id:'S01',name:'밝은세상안과',domain:'xn--939au0g33g6um.com',active:1},{id:'S02',name:'Seoul Vision Clinic',domain:'seoulvisionclinic.com',active:1},{id:'S03',name:'Busan Vision Clinic',domain:'busanvisionclinic.com',active:1},{id:'S04',name:'Seoul ICL Eye Clinic',domain:'seoulicleyeclinic.com',active:1},{id:'S05',name:'Korea LASIK',domain:'korealasik.com',active:1},{id:'S06',name:'LASIK Korea',domain:'lasikkorea.com',active:1}];
+export const initialSettings:Settings={enabled:true,repeats:1,monthlyLimit:600,countries:countries.map(c=>c.code),weekday:1,hour:9};
+export function nextWeekly(s:Settings,now=new Date()){const k=new Date(now.getTime()+9*3600000);const delta=(s.weekday-k.getUTCDay()+7)%7;const n=new Date(Date.UTC(k.getUTCFullYear(),k.getUTCMonth(),k.getUTCDate()+delta,s.hour)-9*3600000);if(n.getTime()<=now.getTime())n.setUTCDate(n.getUTCDate()+7);return n.toISOString();}
+export const emptyData:DashboardData={sites:initialSites,questions:[],connections:providers.map(p=>({id:p.id,model:'',connected:false,enabled:0,tested:null,status:'연결 전'})),results:[],jobs:[],settings:initialSettings,usedThisMonth:0,nextRun:nextWeekly(initialSettings),role:'viewer',scheduler:'설정 중',storageReady:false};
+export function pct(n:number,d:number){return d?`${(n/d*100).toFixed(1)}%`:'—';}
+export function displayDate(s:string){return new Date(s).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}
