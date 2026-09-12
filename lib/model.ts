@@ -1,9 +1,9 @@
 export type Provider='openai'|'claude'|'gemini';
-export type Site={id:string;name:string;domain:string;active:number};
-export type Question={id:string;text:string;language:string;keyword:string;countries:string[];active:number;version:number;branded:number};
+export type Site={id:string;name:string;domain:string;active:number;deleted?:number;version?:number};
+export type Question={id:string;text:string;language:string;keyword:string;countries:string[];active:number;version:number;branded:number;deleted?:number};
 export type Connection={id:Provider;model:string;connected:boolean;enabled:number;tested:string|null;status:string};
 export type Citation={url:string;title:string;text:string;siteId:string|null};
-export type Result={id:string;jobId:string;questionId:string;question:string;keyword:string;language:string;provider:Provider;model:string;country:string;countryMethod:string;track:string;status:string;answer:string;citations:Citation[];sites:string[];brand:boolean;error:string|null;createdAt:string;signature:string;searchUsed:boolean;evidence:string;branded:number};
+export type Result={siteSnapshot?:Site[];id:string;jobId:string;questionId:string;question:string;keyword:string;language:string;provider:Provider;model:string;country:string;countryMethod:string;track:string;status:string;answer:string;citations:Citation[];sites:string[];brand:boolean;error:string|null;createdAt:string;signature:string;searchUsed:boolean;evidence:string;branded:number};
 export type Job={id:string;label:string;kind:string;status:string;createdAt:string;total:number;done:number;failed:number};
 export type Settings={enabled:boolean;repeats:number;monthlyLimit:number;countries:string[];weekday:number;hour:number};
 export type DashboardData={sites:Site[];questions:Question[];connections:Connection[];results:Result[];jobs:Job[];settings:Settings;usedThisMonth:number;nextRun:string;role:string;scheduler:string;storageReady:boolean};

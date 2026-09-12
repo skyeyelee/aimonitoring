@@ -1,0 +1,37 @@
+import {build} from 'esbuild';
+import {DatabaseSync} from 'node:sqlite';
+import {readFileSync,mkdtempSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {pathToFileURL} from 'node:url';
+import assert from 'node:assert/strict';
+const dir=mkdtempSync(join(tmpdir(),'catalog-test-'));
+try {
+ await build({entryPoints:['lib/catalog.ts'],bundle:true,platform:'node',format:'esm',outfile:join(dir,'catalog.mjs')});
+ const {manageCatalog}=await import(pathToFileURL(join(dir,'catalog.mjs')));
+ const sql=new DatabaseSync(':memory:');
+ for(const f of ['0000_watery_magneto.sql','0001_left_paladin.sql'])sql.exec(readFileSync('drizzle/'+f,'utf8'));
+ const d={prepare(query){let args=[];return {bind(...v){args=v;return this},async first(){return sql.prepare(query).get(...args)||null},async run(){return {meta:sql.prepare(query).run(...args)}}}}};
+ sql.prepare('INSERT INTO sites(id,name,domain,active) VALUES(?,?,?,1)').run('s','Before','before.com');
+ const q={id:'q',text:'Original question?',keyword:'LASIK',language:'영어',countries:['US'],active:1,version:1,branded:0};
+ sql.prepare('INSERT INTO questions(id,payload) VALUES(?,?)').run('q',JSON.stringify(q));
+ const before=JSON.stringify({question:q.text,citations:[{url:'https://before.com',siteId:'s'}]});
+ sql.prepare('INSERT INTO results(id,job_id,status,payload,created_at) VALUES(?,?,?,?,?)').run('r','job','success',before,'2026-09-10');
+ await manageCatalog(d,'siteUpdate',{id:'s',name:'After',domain:'https://www.after.com/path',version:1});
+ assert.equal(sql.prepare('SELECT domain FROM sites').get().domain,'after.com');
+ await assert.rejects(manageCatalog(d,'siteUpdate',{id:'s',name:'Stale',domain:'stale.com',version:1}),/변경/);
+ await manageCatalog(d,'siteDelete',{id:'s'});
+ assert.equal(sql.prepare('SELECT deleted FROM sites').get().deleted,1);
+ await assert.rejects(manageCatalog(d,'siteUpdate',{id:'s',name:'No',domain:'no.com',version:3}),/삭제/);
+ await manageCatalog(d,'siteRestore',{id:'s'});
+ assert.equal(sql.prepare('SELECT active FROM sites').get().active,0);
+ await manageCatalog(d,'questionUpdate',{...q,text:'Updated question?',countries:['US','CA'],branded:false});
+ const current=()=>JSON.parse(sql.prepare('SELECT payload FROM questions').get().payload);
+ assert.equal(current().version,2);assert.equal(current().text,'Updated question?');
+ await assert.rejects(manageCatalog(d,'questionUpdate',{...q,branded:false}),/변경/);
+ await manageCatalog(d,'questionDelete',{id:'q'});assert.equal(current().deleted,1);assert.equal(current().active,0);
+ await manageCatalog(d,'questionRestore',{id:'q'});assert.equal(current().deleted,0);assert.equal(current().active,0);
+ assert.equal(sql.prepare('SELECT payload FROM results').get().payload,before);
+ await assert.rejects(manageCatalog(d,'siteDelete',{id:'missing'}),/찾을/);
+ sql.close();console.log('Catalog edit, stale edit rejection, delete, restore and historical evidence preservation passed.');
+} finally {rmSync(dir,{recursive:true,force:true});}
