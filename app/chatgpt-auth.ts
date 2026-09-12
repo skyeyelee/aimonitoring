@@ -1,5 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import {isVercelRuntime} from '@/lib/runtime';
+import {validCredentials} from '@/lib/password-auth';
 
 export type ChatGPTUser = {
   userId: string;
@@ -20,6 +22,11 @@ const CALLBACK_PATH = "/callback";
 
 export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
   const requestHeaders = await headers();
+  if(isVercelRuntime){
+    const email=process.env.DASHBOARD_ADMIN_EMAIL;
+    if(!await validCredentials(requestHeaders.get('authorization'),email,process.env.DASHBOARD_PASSWORD))return null;
+    return {userId:`vercel:${email}`,email:email!,displayName:'관리자',fullName:null};
+  }
   const userId = requestHeaders.get(USER_ID_HEADER);
   const email = requestHeaders.get(USER_EMAIL_HEADER);
   if (!userId || !email) return null;

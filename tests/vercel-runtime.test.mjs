@@ -1,0 +1,22 @@
+import {build} from 'esbuild';
+import assert from 'node:assert/strict';
+async function moduleFrom(file){const r=await build({entryPoints:[file],bundle:true,platform:'node',format:'esm',write:false});return import('data:text/javascript;base64,'+Buffer.from(r.outputFiles[0].text).toString('base64'));}
+const {validCredentials}=await moduleFrom('lib/password-auth.ts');
+const email='admin@example.com',password='a-long-test-password';
+const basic=value=>'Basic '+Buffer.from(value).toString('base64');
+assert.equal(await validCredentials(basic(email+':'+password),email,password),true);
+assert.equal(await validCredentials(basic(email+':wrong'),email,password),false);
+assert.equal(await validCredentials(null,email,password),false);
+assert.equal(await validCredentials(basic(email+':'+password),undefined,password),false);
+assert.equal(await validCredentials('Basic %%%',email,password),false);
+const {createD1Http}=await moduleFrom('lib/d1-http.ts');
+const calls=[];
+const d=createD1Http({accountId:'account',databaseId:'database',token:'test-only'},async(url,options)=>{calls.push({url,...options});const body=JSON.parse(options.body),queries=body.batch||[body];return Response.json({success:true,result:queries.map(()=>({success:true,results:[{n:3}],meta:{changes:1}}))});});
+assert.deepEqual(await d.prepare('SELECT ? AS n').bind(3).first(),{n:3});
+assert.equal(JSON.parse(calls[0].body).params[0],3);
+assert.equal(await d.prepare('SELECT 3 AS n').first('n'),3);
+assert.equal((await d.batch([d.prepare('SELECT 1'),d.prepare('SELECT 2')])).length,2);
+assert.equal(JSON.parse(calls.at(-1).body).batch.length,2);
+const failed=createD1Http({accountId:'a',databaseId:'b',token:'private'},async()=>Response.json({success:false,errors:[{message:'private'}]}));
+await assert.rejects(failed.prepare('SELECT 1').run(),e=>!e.message.includes('private')&&e.message.includes('D1'));
+console.log('PASS: authentication rejects invalid credentials; D1 parameters, batches and safe errors.');

@@ -1,4 +1,4 @@
-import {env} from 'cloudflare:workers';
+import {env} from '@/lib/runtime';
 import {initialSites,initialSettings,nextWeekly,type Question,type Settings,type Result,type DashboardData} from './model';
 import {seedQuestions} from './seeds';
 import {defaultModels} from './providers';
