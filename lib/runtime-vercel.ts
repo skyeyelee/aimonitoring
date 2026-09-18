@@ -9,6 +9,7 @@ export function missingConfiguration(){
 }
 let database:D1Database|undefined;
 export const env={
+ AUTH_MODE:undefined as string|undefined, AUTO_MONITORING:undefined as string|undefined,
  get DB(){if(!process.env.CLOUDFLARE_ACCOUNT_ID||!process.env.CLOUDFLARE_D1_DATABASE_ID||!process.env.CLOUDFLARE_D1_API_TOKEN)return undefined;return database??=createD1Http({accountId:process.env.CLOUDFLARE_ACCOUNT_ID,databaseId:process.env.CLOUDFLARE_D1_DATABASE_ID,token:process.env.CLOUDFLARE_D1_API_TOKEN});},
  get APP_ENCRYPTION_KEY(){return process.env.APP_ENCRYPTION_KEY;},
  get SCHEDULER_STATUS(){return process.env.SCHEDULER_STATUS||'예약 연결 대기';},

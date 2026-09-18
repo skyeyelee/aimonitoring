@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {isVercelRuntime} from '@/lib/runtime';
+import {authSettings,sessionUser} from '@/lib/session-auth';
 import {validCredentials} from '@/lib/password-auth';
 
 export type ChatGPTUser = {
@@ -27,6 +28,10 @@ export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
     if(!await validCredentials(requestHeaders.get('authorization'),email,process.env.DASHBOARD_PASSWORD))return null;
     return {userId:`vercel:${email}`,email:email!,displayName:'관리자',fullName:null};
   }
+  const settings=authSettings();
+  if(settings.AUTH_MODE==='password')return sessionUser(requestHeaders.get('cookie'));
+  const host=requestHeaders.get('host')?.split(':')[0];
+  if(settings.LOCAL_AUTH_ENABLED!=='true'||!['localhost','127.0.0.1'].includes(host||''))return null;
   const userId = requestHeaders.get(USER_ID_HEADER);
   const email = requestHeaders.get(USER_EMAIL_HEADER);
   if (!userId || !email) return null;
@@ -52,7 +57,7 @@ export async function requireChatGPTUser(
   const user = await getChatGPTUser();
   if (user) return user;
 
-  redirect(chatGPTSignInPath(returnTo));
+  redirect(authSettings().AUTH_MODE==='password'?'/login':chatGPTSignInPath(returnTo));
 }
 
 export function chatGPTSignInPath(returnTo: string): string {

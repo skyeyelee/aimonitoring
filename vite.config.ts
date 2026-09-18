@@ -12,7 +12,8 @@ const { d1, r2 } = hostingConfig;
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 
 const localBindingConfig = {
-  main: "vinext/server/fetch-handler",
+  main: "./workers/index.ts",
+  vars:{LOCAL_AUTH_ENABLED:"true"},
   compatibility_flags: ["nodejs_compat"],
   d1_databases: d1
     ? [
@@ -34,6 +35,9 @@ const localBindingConfig = {
 };
 
 export default defineConfig(async () => {
+  const production=process.env.CF_PRODUCTION_BUILD==='1';
+  if(production&&!/^[a-f0-9-]{36}$/i.test(process.env.CF_DATABASE_ID||''))throw new Error('CF_DATABASE_ID에 실제 운영 D1 ID가 필요합니다.');
+  const productionConfig={...localBindingConfig,name:'aimonitoring',compatibility_date:'2026-09-18',d1_databases:[{binding:'DB',database_name:'aimonitoring-db',database_id:process.env.CF_DATABASE_ID||'',migrations_dir:'./drizzle'}],vars:{AUTH_MODE:'password',AUTO_MONITORING:'server'},triggers:{crons:['*/2 * * * *']},observability:{enabled:true}};
   // Use Miniflare's local Request.cf placeholder unless fetching is requested.
   process.env.CLOUDFLARE_CF_FETCH_ENABLED ??= "false";
   process.env.WRANGLER_SEND_METRICS ??= "false";
@@ -58,7 +62,7 @@ export default defineConfig(async () => {
       cloudflare({
         viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
         inspectorPort: false,
-        config: localBindingConfig,
+        config: production?productionConfig:localBindingConfig,
       }),
     ],
   };

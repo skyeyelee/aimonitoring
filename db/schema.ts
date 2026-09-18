@@ -11,3 +11,5 @@ export const results=sqliteTable('results',{id:text('id').primaryKey(),jobId:tex
 export const usage=sqliteTable('usage',{month:text('month').primaryKey(),count:integer('count').notNull().default(0)});
 export const members=sqliteTable('members',{email:text('email').primaryKey(),role:text('role').notNull()});
 export const audit=sqliteTable('audit',{id:text('id').primaryKey(),actor:text('actor').notNull(),action:text('action').notNull(),createdAt:text('created_at').notNull()});
+export const authSessions=sqliteTable('auth_sessions',{tokenHash:text('token_hash').primaryKey(),email:text('email').notNull(),expiresAt:integer('expires_at').notNull(),credentialVersion:text('credential_version').notNull()},t=>[index('idx_auth_sessions_expiry').on(t.expiresAt)]);
+export const authAttempts=sqliteTable('auth_attempts',{id:text('id').primaryKey(),count:integer('count').notNull(),expiresAt:integer('expires_at').notNull()},t=>[index('idx_auth_attempts_expiry').on(t.expiresAt)]);
