@@ -135,3 +135,18 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Overview site citation ranking: shared 0–100% scale. */
+.top-sites-chart { padding: 8px 24px 24px; }
+.top-site-row { display: block; width: 100%; text-align: left; padding: 12px 0; border: 0; background: transparent; cursor: pointer; }
+.top-site-row:focus-visible { outline: 2px solid #186ce1; outline-offset: 4px; border-radius: 4px; }
+.top-site-label, .top-site-meta, .top-site-axis { display: flex; justify-content: space-between; gap: 12px; }
+.top-site-label { font-size: 14px; margin-bottom: 8px; align-items: baseline; }
+.top-site-label strong { color: #186ce1; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.top-site-name { overflow-wrap: anywhere; font-weight: 600; }
+.top-site-track { height: 12px; background: #edf2f8; border-radius: 4px; overflow: hidden; }
+.top-site-track span { display: block; height: 100%; background: #186ce1; border-radius: 4px; }
+.top-site-row:hover .top-site-track span { background: #1253b0; }
+.top-site-meta { color: #68778d; font-size: 11px; margin-top: 6px; flex-wrap: wrap; }
+.top-site-meta span:first-child { overflow-wrap: anywhere; }
+.top-site-axis { color: #68778d; font-size: 11px; border-top: 1px solid #e6ebf1; padding-top: 6px; margin-top: 4px; }
