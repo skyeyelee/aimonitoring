@@ -1,3 +1,9 @@
+export function providerError(provider:string,status:number,body:unknown,key:string){
+ const error=(body as {error?:{message?:unknown}})?.error;
+ const message=typeof error?.message==='string'?error.message:'';
+ const safe=message.split(key||'__unused__').join('[비공개]').replace(/sk-[\w-]+|AIza[\w-]+/g,'[비공개]').replace(/[\r\n]+/g,' ').slice(0,600);
+ return `${provider==='claude'?'Claude':'OpenAI'} 요청 실패 (${status}).${safe?' '+safe:' API 키·사용 한도·요청 설정을 확인하세요.'}`;
+}
 export function geminiError(status:number,body:unknown,key:string){
  const error=(body as {error?:{message?:unknown;status?:unknown}})?.error;
  const message=typeof error?.message==='string'?error.message:'';
